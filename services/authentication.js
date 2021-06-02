@@ -1,38 +1,58 @@
+const { default: jwtDecode, InvalidTokenError } = require('jwt-decode');
 const fetch = require('node-fetch');
+const { Authentication } = require('../models/Authentication');
 
-const generateJWT = async () => {
+const { getCurrentTimestamp } = require('../utils');
+
+const generateJWT = async ({authUser}) => {
     try {
         const response = await fetch('https://auth.lightwaverf.com/token', {
             method: 'POST',
             body: JSON.stringify({
                 grant_type: 'refresh_token',
-                refresh_token: refresh_token,
+                refresh_token: authUser.refreshToken,
             }),
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `basic ${config.basicToken}`,
+                'Authorization': `basic ${authUser.basicToken}`,
             }
         });
         const payload = await response.json();
-        await updateDb('access_token', payload.access_token);
-        await updateDb('refresh_token', payload.refresh_token);
-        await updateDb('token_type', payload.token_type);
         const decoded = jwtDecode(payload.access_token);
-        await updateDb('token_expires', decoded.exp);
+        const {
+            token_type,
+            refresh_token,
+            access_token,
+        } = payload;
+        return {
+            refreshToken: refresh_token,
+            accessToken: access_token,
+            accessTokenExpires: decoded.exp,
+            accessTokenType: token_type,
+        };
     } catch (error) {
         console.error('ERROR - server.js - generateJWT():', error);
         throw error;
     }
 };
 
-module.exports.getJWT = async () => {
-    const currentTimestamp = getCurrentTimestamp();
-    if (
-        (access_token && token_type && token_expires) &&
-        currentTimestamp <= token_expires
-    ) {
-        return `${token_type} ${access_token}`;
+module.exports.getJWT = async ({ username, apiKey }) => {
+    try {
+        const authUser = await Authentication.findOne({ where: { username, apiKey } });
+        if (!authUser) return null;
+    
+        const currentTimestamp = getCurrentTimestamp();
+        if (
+            (authUser.accessToken && authUser.accessToken && authUser.accessTokenType && authUser.accessTokenExpires) &&
+            currentTimestamp <= authUser
+        ) {
+            return `${authUser.accessTokenType} ${authUser.accessToken}`;
+        }
+        const payload = await generateJWT({authUser});
+        authUser.update({ ...payload });
+        return `${payload.accessTokenType} ${payload.accessToken}`;
+    } catch (error) {
+        console.error('ERROR - getJWT():', error);
+        throw error;
     }
-    await generateJWT();
-    return `${token_type} ${access_token}`;
 };

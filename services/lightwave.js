@@ -2,9 +2,8 @@ const fetch = require('node-fetch');
 
 const { getJWT } = require('./authentication');
 
-module.exports.getStructureIds = async () => {
+module.exports.getStructureIds = async ({ jwt }) => {
     try {
-        const jwt = await getJWT();
         const response = await fetch('https://publicapi.lightwaverf.com/v1/structures', {
             headers: {
                 'Content-Type': 'application/json',
@@ -19,10 +18,9 @@ module.exports.getStructureIds = async () => {
     }
 };
 
-module.exports.getStructure = async (strucutreId) => {
+module.exports.getStructure = async ({ structureId, jwt }) => {
     try {
-        const jwt = await getJWT();
-        const response = await fetch(`https://publicapi.lightwaverf.com/v1/structure/${strucutreId}`, {
+        const response = await fetch(`https://publicapi.lightwaverf.com/v1/structure/${structureId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': jwt,
@@ -36,12 +34,12 @@ module.exports.getStructure = async (strucutreId) => {
     }
 };
 
-module.exports.getAllDevices = async () => {
+module.exports.getAllDevices = async ({ jwt }) => {
     try {
-        const structureIds = await this.getStructureIds();
+        const structureIds = await this.getStructureIds({ jwt });
         const structures = await Promise.all(
             structureIds.map(structureId => {
-                return getStructure(structureId);
+                return this.getStructure({ structureId, jwt });
             }),
         );
         const devices = structures.reduce((acc, structure) => {
@@ -57,9 +55,9 @@ module.exports.getAllDevices = async () => {
     }
 };
 
-module.exports.getAllFeatureSets = async () => {
+module.exports.getAllFeatureSets = async ({ jwt }) => {
     try {
-        const devices = await this.getAllDevices();
+        const devices = await this.getAllDevices({ jwt });
         const featureSets = devices.reduce((acc, device) => {
             if (device.featureSets.length >= 1) {
                 return [...acc, ...device.featureSets];
@@ -73,9 +71,9 @@ module.exports.getAllFeatureSets = async () => {
     }
 }
 
-module.exports.findFeatureSet = async (featureSetName) => {
+module.exports.findFeatureSet = async ({ featureSetName, jwt }) => {
     try {
-        const featureSets = await this.getAllFeatureSets();
+        const featureSets = await this.getAllFeatureSets({ jwt });
         const foundFeatureSet = await featureSets.find(({ name }) => name.toLowerCase() === featureSetName.toLowerCase());
         return foundFeatureSet;
     } catch (error) {
@@ -84,9 +82,8 @@ module.exports.findFeatureSet = async (featureSetName) => {
     }
 };
 
-module.exports.featureWrite = async (featureId, value) => {
+module.exports.featureWrite = async ({ featureId, value, jwt }) => {
     try {
-        const jwt = await getJWT();
         const response = await fetch(`https://publicapi.lightwaverf.com/v1/feature/${featureId}`, {
             method: 'POST',
             headers: {
