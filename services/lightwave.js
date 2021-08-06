@@ -1,7 +1,5 @@
 const fetch = require('node-fetch');
 
-const { getJWT } = require('./authentication');
-
 module.exports.getStructureIds = async ({ jwt }) => {
     try {
         const response = await fetch('https://publicapi.lightwaverf.com/v1/structures', {
@@ -74,8 +72,9 @@ module.exports.getAllFeatureSets = async ({ jwt }) => {
 module.exports.findFeatureSet = async ({ featureSetName, jwt }) => {
     try {
         const featureSets = await this.getAllFeatureSets({ jwt });
-        const foundFeatureSet = await featureSets.find(({ name }) => name.toLowerCase() === featureSetName.toLowerCase());
-        return foundFeatureSet;
+        const featureSetNames = featureSets.map(({ name }) => name);
+        const featureSet = await featureSets.find(({ name }) => name.toLowerCase() === featureSetName.toLowerCase());
+        return { featureSet, featureSetNames};
     } catch (error) {
         console.error('ERROR - server.js - findFeatureSet():', error);
         throw error;

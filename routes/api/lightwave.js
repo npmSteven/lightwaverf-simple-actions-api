@@ -16,11 +16,12 @@ router.get('/featureWrite', featureWriteValidation, async (req, res) => {
         if (!authUser) return res.status(401).json(respondErrorMessage('Username or api key is invalid'));
 
         const jwt = await getJWT({ username, apiKey });
-        const featureSet = await findFeatureSet({ featureSetName, jwt });
-        if (!featureSet) return res.status(404).json(respondErrorMessage('Can not find a feature set with that name'));
+        const { featureSet, featureSetNames } = await findFeatureSet({ featureSetName, jwt });
+        if (!featureSet) return res.status(404).json(respondErrorMessage(`Can not find a feature set with that name try [${featureSetNames.join(', ')}]`));
 
         const feature = featureSet.features.find(({ type }) => type.toLowerCase() === featureType.toLocaleLowerCase());
-        if (!feature) return res.status(404).json(respondErrorMessage('Can not find that type on the feature set'));
+        const featureTypes = featureSet.features.filter(({ writable }) => writable).map(({ type }) => type);
+        if (!feature) return res.status(404).json(respondErrorMessage(`Can not find that type on the feature set try [${featureTypes.join(', ')}]`));
 
         const { featureId } = feature;
 

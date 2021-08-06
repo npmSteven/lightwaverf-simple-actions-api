@@ -9,6 +9,7 @@ const { generateToken, getCurrentTimestamp, respondErrorMessage } = require('../
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+    const id = uuid.v4();
     try {
         if (
             !req.body.basicToken ||
@@ -25,7 +26,7 @@ router.post('/', async (req, res) => {
         if (foundAuth) return res.status(401).json({ success: false, payload: { message: 'Username already exists' } });
     
         const auth = await Authentication.create({
-            id: uuid.v4(),
+            id,
             basicToken,
             refreshToken,
             username,
@@ -39,6 +40,8 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('ERROR - authentication/:', error);
         if (error instanceof InvalidTokenError) {
+            const auth = await Authentication.findByPk(id);
+            await auth.destroy();
             return res.status(400).json(respondErrorMessage('Invalid token'));
         }
     }
