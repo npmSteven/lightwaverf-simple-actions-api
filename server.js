@@ -19,7 +19,7 @@ app.use('/api/v1/authentication', require('./routes/api/authentication'));
     
         app.listen(config.port, () => console.log('Listening'));
     } catch (error) {
-        console.error('Failed to start app');
+        console.error('Failed to start app', error);
         process.exit(1);
     }
 })();
