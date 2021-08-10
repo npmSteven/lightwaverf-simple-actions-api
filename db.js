@@ -1,10 +1,22 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: './db.sqlite',
-    logging: false,
-});
+const { db } = require('./config');
+
+let sequelize;
+
+if (db.url) {
+    sequelize = new Sequelize({
+        dialect: 'sqlite',
+        
+        logging: false,
+    });
+} else {
+    sequelize = new Sequelize(db.url, {
+        dialect: 'sqlite',
+        logging: false,
+    });
+}
+
 
 module.exports.connect = async () => {
     try {
